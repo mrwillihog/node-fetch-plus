@@ -1,6 +1,6 @@
 {
   "name": "node-fetch-plus",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "An extension of node-fetch that provides retries, timing and logging",
   "homepage": "https://github.com/mrwillihog/node-fetch-plus",
   "bugs": {
@@ -15,7 +15,7 @@
   "scripts": {
     "prebuild": "rm -rf ./dist",
     "build": "tsc",
-    "postbuild": "cp package.json dist/",
+    "postbuild": "cp package.json README.md dist/",
     "format:check": "prettier \"./src/**/*.ts\" -l",
     "format:fix": "prettier \"./src/**/*.ts\" --write",
     "prelint": "npm run format:check",
