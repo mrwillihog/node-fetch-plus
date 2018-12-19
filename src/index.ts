@@ -11,7 +11,7 @@ interface RetryOptions {
   factor: number;
   minTimeout: number;
   maxTimeout: number;
-  retryableStatusCodes: number[];
+  retryOnStatusCodes: number[];
 }
 type PartialRetryOptions = Partial<RetryOptions>;
 
@@ -20,7 +20,7 @@ const DEFAULT_RETRYING_OPTIONS: RetryOptions = {
   maxTimeout: Number.POSITIVE_INFINITY,
   minTimeout: 1000,
   retries: 2,
-  retryableStatusCodes: [],
+  retryOnStatusCodes: [408, 500, 502, 503, 504],
 };
 
 const NON_RETRYING_OPTIONS: RetryOptions = Object.assign({}, DEFAULT_RETRYING_OPTIONS, {
@@ -76,6 +76,14 @@ class NodeFetchPlus extends EventEmitter {
     } else {
       this.retryOptions = Object.assign({}, DEFAULT_RETRYING_OPTIONS, opts.retries);
     }
+
+    /**
+     * If an EventEmitter emits an 'error' event with no bound listeners it will
+     * quit the node process. As these events are optional for our users we dont
+     * want this behaviour. So when we create a client we bind a no-op to the
+     * error event to prevent this.
+     */
+    this.on('error', () => {}); // tslint:disable-line no-empty
   }
 
   public fetch(url: string | Request, init?: RequestInit): Promise<Response> {
@@ -121,18 +129,8 @@ class NodeFetchPlus extends EventEmitter {
   }
 
   private shouldRetry(attempt: number, status: number) {
-    return attempt <= this.retryOptions.retries && this.retryOptions.retryableStatusCodes.includes(status);
+    return attempt <= this.retryOptions.retries && this.retryOptions.retryOnStatusCodes.includes(status);
   }
 }
 
-export function createClient(opts?: Options) {
-  const client = new NodeFetchPlus(opts);
-  /**
-   * If an EventEmitter emits an 'error' event with no bound listeners it will
-   * quit the node process. As these events are optional for our users we dont
-   * want this behaviour. So when we create a client we bind a no-op to the
-   * error event to prevent this.
-   */
-  client.on('error', () => {}); // tslint:disable-line no-empty
-  return client;
-}
+export = NodeFetchPlus;

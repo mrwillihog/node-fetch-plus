@@ -3,7 +3,7 @@ import nock from 'nock';
 import * as fetch from 'node-fetch';
 import { Request } from 'node-fetch';
 import sinon from 'sinon';
-import { createClient } from './index';
+import NodeFetchPlus from './index';
 
 const testUrl = 'http://test.com';
 const sandbox = sinon.createSandbox();
@@ -26,7 +26,7 @@ describe('NodeFetchToolkit', () => {
     describe('node-fetch integration', () => {
       it('Delegates to node-fetch', async () => {
         const mockResponse = sandbox.mock();
-        const client = createClient();
+        const client = new NodeFetchPlus();
         const fetchStub = sandbox.stub(fetch, 'default').resolves(mockResponse);
         const expectedUrl = `${testUrl}/path`;
         const expectedOpts: fetch.RequestInit = {
@@ -51,7 +51,7 @@ describe('NodeFetchToolkit', () => {
 
       it('returns the node-fetch response', async () => {
         const expectedResponse = sandbox.mock();
-        const client = createClient();
+        const client = new NodeFetchPlus();
         sandbox.stub(fetch, 'default').resolves(expectedResponse);
 
         const actualResponse = await client.fetch('http://any-url.com');
@@ -62,7 +62,7 @@ describe('NodeFetchToolkit', () => {
 
     describe('retries', () => {
       it('can be configured to retry errors', async () => {
-        const client = createClient({
+        const client = new NodeFetchPlus({
           retries: {
             factor: 0,
             minTimeout: 1,
@@ -84,7 +84,7 @@ describe('NodeFetchToolkit', () => {
       });
 
       it('can be configured to retry any number of times', async () => {
-        const client = createClient({
+        const client = new NodeFetchPlus({
           retries: {
             factor: 0,
             minTimeout: 1,
@@ -105,41 +105,45 @@ describe('NodeFetchToolkit', () => {
         assert(nock.isDone(), `Expected 3 calls to ${testUrl}/path`);
       });
 
-      it('does not retry on 5XX status codes', async () => {
-        const client = createClient({
-          retries: {
-            factor: 0,
-            minTimeout: 1,
-            retries: 2,
-          },
+      const retryOnStatusCodes = [408, 500, 502, 503, 504];
+
+      for (const statusCode of retryOnStatusCodes) {
+        it(`retries on status code ${statusCode} by default`, async () => {
+          const client = new NodeFetchPlus({
+            retries: {
+              factor: 0,
+              minTimeout: 1,
+              retries: 2,
+            },
+          });
+
+          const firstNock = nock(testUrl)
+            .get('/path')
+            .reply(statusCode);
+
+          const secondNock = nock(testUrl)
+            .get('/path')
+            .reply(200);
+
+          await client.fetch('http://test.com/path');
+          assert(firstNock.isDone(), `Expected call to ${testUrl}/path`);
+          assert(secondNock.isDone(), `Expected second call to ${testUrl}/path`);
         });
-
-        const firstNock = nock(testUrl)
-          .get('/path')
-          .reply(500);
-
-        const secondNock = nock(testUrl)
-          .get('/path')
-          .reply(200);
-
-        await client.fetch('http://test.com/path');
-        assert(firstNock.isDone(), `Expected call to ${testUrl}/path`);
-        assert(!secondNock.isDone(), `Did not expect second call to ${testUrl}/path`);
-      });
+      }
 
       it('can be configured to retry on certain status codes', async () => {
-        const client = createClient({
+        const client = new NodeFetchPlus({
           retries: {
             factor: 0,
             minTimeout: 1,
             retries: 2,
-            retryableStatusCodes: [408],
+            retryOnStatusCodes: [418],
           },
         });
 
         const firstNock = nock(testUrl)
           .get('/path')
-          .reply(408);
+          .reply(418);
 
         const secondNock = nock(testUrl)
           .get('/path')
@@ -151,12 +155,12 @@ describe('NodeFetchToolkit', () => {
       });
 
       it('can be configured to retry on multiple status codes', async () => {
-        const client = createClient({
+        const client = new NodeFetchPlus({
           retries: {
             factor: 0,
             minTimeout: 1,
             retries: 2,
-            retryableStatusCodes: [408, 500, 504],
+            retryOnStatusCodes: [408, 500, 504],
           },
         });
 
@@ -181,12 +185,12 @@ describe('NodeFetchToolkit', () => {
       });
 
       it('returns the last response after failing to retry on a specific status code', async () => {
-        const client = createClient({
+        const client = new NodeFetchPlus({
           retries: {
             factor: 0,
             minTimeout: 1,
             retries: 2,
-            retryableStatusCodes: [408],
+            retryOnStatusCodes: [408],
           },
         });
 
@@ -200,7 +204,7 @@ describe('NodeFetchToolkit', () => {
       });
 
       it('throws an error if all retries fail', async () => {
-        const client = createClient({
+        const client = new NodeFetchPlus({
           retries: {
             factor: 0,
             minTimeout: 1,
@@ -238,12 +242,12 @@ describe('NodeFetchToolkit', () => {
         const consoleStub = sandbox.stub(console, 'info');
         const fetchSpy = sandbox.spy(fetch, 'default');
 
-        const client = createClient({
+        const client = new NodeFetchPlus({
           retries: {
             factor: 0,
             minTimeout: 0,
             retries: 1,
-            retryableStatusCodes: [500],
+            retryOnStatusCodes: [500],
           },
         });
         client.on('request', console.info);
@@ -287,12 +291,12 @@ describe('NodeFetchToolkit', () => {
         const consoleStub = sandbox.stub(console, 'info');
         const fetchSpy = sandbox.spy(fetch, 'default');
 
-        const client = createClient({
+        const client = new NodeFetchPlus({
           retries: {
             factor: 0,
             minTimeout: 0,
             retries: 1,
-            retryableStatusCodes: [500],
+            retryOnStatusCodes: [500],
           },
         });
         client.on('response', console.info);
@@ -340,7 +344,7 @@ describe('NodeFetchToolkit', () => {
         const consoleStub = sandbox.stub(console, 'info');
         const fetchSpy = sandbox.spy(fetch, 'default');
 
-        const client = createClient({
+        const client = new NodeFetchPlus({
           retries: {
             factor: 0,
             minTimeout: 0,

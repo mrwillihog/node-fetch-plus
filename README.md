@@ -1,3 +1,5 @@
+[![Build Status](https://travis-ci.org/mrwillihog/node-fetch-plus.svg?branch=master)](https://travis-ci.org/mrwillihog/node-fetch-plus)
+
 # Node Fetch Plus
 
 An extension of [node-fetch](https://github.com/bitinn/node-fetch) that provides retries, timing and logging.
@@ -10,30 +12,35 @@ $ npm install node-fetch-plus --save
 
 ## Configuration
 
-A node-fetch-plus client can be created using the `createClient` method.
+A node-fetch-plus client can be created using the `NodeFetchPlus` constructor.
 
 ```js
-const client = require('node-fetch-plus').createClient();
+const NodeFetchPlus = require('node-fetch-plus');
+
+const client = new NodeFetchPlus();
 ```
 
 By default this creates a client with a `fetch` method that is _identical_ to [node-fetch](https://github.com/bitinn/node-fetch). For example, the following are identical:
 
 ```js
 const fetch = require('node-fetch');
-const client = require('node-fetch-plus').createClient();
+
+const NodeFetchPlus = require('node-fetch-plus');
+const client = new NodeFetchPlus();
 
 fetch('http://test.com');
 client.fetch('http://test.com');
 ```
 
-The `fetch` method of a `node-fetch-plus` client supports all the options that `node-fetch` supports. [Read the documentation](https://github.com/bitinn/node-fetch) for a full list of options.
+The `fetch` method of a `node-fetch-plus` instance supports all the options that `node-fetch` supports. [Read the documentation](https://github.com/bitinn/node-fetch) for a full list of options.
 
 ### Retries
 
-`node-fetch-plus` supports retrying failed HTTP requests. Firstly, it will retry on any error (e.g. network connection timeouts):
+`node-fetch-plus` supports retrying failed HTTP requests. It will retry on any error (e.g. network connection timeouts):
 
 ```js
-const client = require('node-fetch-plus').createClient({
+const NodeFetchPlus = require('node-fetch-plus')
+const client = new NodeFetchPlus({
   retries: {
     retries: 2,
     minTimeout: 300
@@ -53,21 +60,30 @@ This will try to make a request to `http://test.com` upto 3 times. If the reques
 
 [Read the documentation](https://github.com/tim-kos/node-retry) to see a list of all supported options.
 
-By default `node-fetch-plus` will not retry _successfully completed_ HTTP requests. This means if you receive a response with a status code of `500` it will **not** be retried. To configure this behaviour you can specify a list of status codes which should be retried:
+By default `node-fetch-plus` will retry successful HTTP requests with the following status codes:
+
+  * **408** Request timeout
+  * **500** Internal server error
+  * **502** Bad gateway
+  * **503** Service unavailable
+  * **504** Gateway timeout
+
+To configure this behaviour you can specify a list of status codes which should be retried:
 
 ```js
-const client = require('node-fetch-plus').createClient({
+const NodeFetchPlus = require('node-fetch-plus')
+const client = new NodeFetchPlus({
   retries: {
     retries: 2,
     minTimeout: 300,
-    retryableStatusCodes: [408, 500, 502, 503, 504]
+    retryOnStatusCodes: [408, 500, 502, 503, 504]
   }
 });
 
 await client.fetch('http://test.com');
 ```
 
-This will retry the request if it receives any of the status codes listed in `retryableStatusCodes`. After all retries the last response is returned from the client.
+This will retry the request if it receives any of the status codes listed in `retryOnStatusCodes`. After all retries the last response is returned from the client.
 
 ### Events
 
@@ -78,7 +94,8 @@ This will retry the request if it receives any of the status codes listed in `re
 A `request` event is emitted just before the HTTP request is made.
 
 ```js
-const client = require('node-fetch-plus').createClient();
+const NodeFetchPlus = require('node-fetch-plus')
+const client = new NodeFetchPlus();
 
 client.on('request', (data) => {
   console.log(`Making ${data.method} request to ${data.url}. Attempt ${data.attempt} of ${data.maxAttempts}`);
@@ -97,7 +114,8 @@ The following information is available:
 A `response` event is emitted just after the HTTP response is received.
 
 ```js
-const client = require('node-fetch-plus').createClient();
+const NodeFetchPlus = require('node-fetch-plus')
+const client = new NodeFetchPlus();
 
 client.on('response', (data) => {
   console.log(`Received ${data.statusCode} from ${data.url} in ${data.responseTime}ms. Attempt ${data.attempt} of ${data.maxAttempts}`);
@@ -118,7 +136,8 @@ The following information is available:
 An `error` event is emitted when a request fails to execute.
 
 ```js
-const client = require('node-fetch-plus').createClient();
+const NodeFetchPlus = require('node-fetch-plus')
+const client = new NodeFetchPlus();
 
 client.on('error', (data) => {
   console.log(`Error received while making ${data.method} request to ${data.url} because ${data.message}. Attempt ${data.attempt} of ${data.maxAttempts}`);
@@ -135,6 +154,45 @@ The following information is available:
  * `maxAttempts` - the maximum number of attempts that will be made.
 
 **NOTE** By default if an `EventEmitter` emits an `error` event and there are no bound listeners it will terminate the node process. The events in `node-fetch-plus` are considered optional and so we bind an empty listener on the `error` event when you call `createClient`. This prevents the process being terminated should you decide not to listen to the `error` event.
+
+### Testing node-fetch-plus
+
+When integrating with `node-fetch-plus` it can be useful to test certain responses without the retries taking effect. You can easily stub the `fetch` method using [sinon](https://github.com/sinonjs/sinon/).
+
+```js
+const NodeFetchPlus = require('node-fetch-plus');
+const { mockResponse } = require('node-fetch-plus/test');
+
+const sinon = require('sinon);
+const sandbox = sinon.createSandbox();
+
+const response = mockResponse(500);
+sandbox.stub(NodeFetchPlus.prototype, 'fetch').resolves(response);
+
+const client = new NodeFetchPlus();
+
+await client.fetch('http://any-url.com');
+```
+
+The `mockResponse` function returns a valid `node-fetch` `Response`. It takes a `status` and an optional body. So if you want to test the response body too:
+
+```js
+const NodeFetchPlus = require('node-fetch-plus');
+const { mockResponse } = require('node-fetch-plus/test');
+
+const sinon = require('sinon);
+const sandbox = sinon.createSandbox();
+
+const response = mockResponse(200, JSON.stringify({
+  id: 1234
+}));
+sandbox.stub(NodeFetchPlus.prototype, 'fetch').resolves(response);
+
+const client = new NodeFetchPlus();
+
+const res = await client.fetch('http://any-url.com');
+const body = await res.json();
+```
 
 ## Related
 
