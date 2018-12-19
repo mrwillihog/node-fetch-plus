@@ -163,7 +163,7 @@ When integrating with `node-fetch-plus` it can be useful to test certain respons
 const NodeFetchPlus = require('node-fetch-plus');
 const { mockResponse } = require('node-fetch-plus/test');
 
-const sinon = require('sinon);
+const sinon = require('sinon');
 const sandbox = sinon.createSandbox();
 
 const response = mockResponse(500);
@@ -180,7 +180,7 @@ The `mockResponse` function returns a valid `node-fetch` `Response`. It takes a 
 const NodeFetchPlus = require('node-fetch-plus');
 const { mockResponse } = require('node-fetch-plus/test');
 
-const sinon = require('sinon);
+const sinon = require('sinon');
 const sandbox = sinon.createSandbox();
 
 const response = mockResponse(200, JSON.stringify({
