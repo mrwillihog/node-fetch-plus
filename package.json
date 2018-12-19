@@ -18,6 +18,7 @@
     "format:fix": "prettier \"./src/**/*.ts\" --write",
     "prelint": "npm run format:check",
     "lint": "tslint --config tslint.json --project tsconfig.json",
+    "prepublish": "npm run build",
     "test": "mocha -r ts-node/register \"./src/**/*.test.ts\""
   },
   "keywords": [],
