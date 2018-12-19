@@ -41,7 +41,7 @@ The `fetch` method of a `node-fetch-plus` instance supports all the options that
 ```js
 const NodeFetchPlus = require('node-fetch-plus')
 const client = new NodeFetchPlus({
-  retries: {
+  retry: {
     retries: 2,
     minTimeout: 300
   }
@@ -73,7 +73,7 @@ To configure this behaviour you can specify a list of status codes which should 
 ```js
 const NodeFetchPlus = require('node-fetch-plus')
 const client = new NodeFetchPlus({
-  retries: {
+  retry: {
     retries: 2,
     minTimeout: 300,
     retryOnStatusCodes: [408, 500, 502, 503, 504]

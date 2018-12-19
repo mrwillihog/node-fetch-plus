@@ -63,7 +63,7 @@ describe('NodeFetchToolkit', () => {
     describe('retries', () => {
       it('can be configured to retry errors', async () => {
         const client = new NodeFetchPlus({
-          retries: {
+          retry: {
             factor: 0,
             minTimeout: 1,
             retries: 2,
@@ -85,7 +85,7 @@ describe('NodeFetchToolkit', () => {
 
       it('can be configured to retry any number of times', async () => {
         const client = new NodeFetchPlus({
-          retries: {
+          retry: {
             factor: 0,
             minTimeout: 1,
             retries: 10,
@@ -110,7 +110,7 @@ describe('NodeFetchToolkit', () => {
       for (const statusCode of retryOnStatusCodes) {
         it(`retries on status code ${statusCode} by default`, async () => {
           const client = new NodeFetchPlus({
-            retries: {
+            retry: {
               factor: 0,
               minTimeout: 1,
               retries: 2,
@@ -133,7 +133,7 @@ describe('NodeFetchToolkit', () => {
 
       it('can be configured to retry on certain status codes', async () => {
         const client = new NodeFetchPlus({
-          retries: {
+          retry: {
             factor: 0,
             minTimeout: 1,
             retries: 2,
@@ -156,7 +156,7 @@ describe('NodeFetchToolkit', () => {
 
       it('can be configured to retry on multiple status codes', async () => {
         const client = new NodeFetchPlus({
-          retries: {
+          retry: {
             factor: 0,
             minTimeout: 1,
             retries: 2,
@@ -186,7 +186,7 @@ describe('NodeFetchToolkit', () => {
 
       it('returns the last response after failing to retry on a specific status code', async () => {
         const client = new NodeFetchPlus({
-          retries: {
+          retry: {
             factor: 0,
             minTimeout: 1,
             retries: 2,
@@ -205,7 +205,7 @@ describe('NodeFetchToolkit', () => {
 
       it('throws an error if all retries fail', async () => {
         const client = new NodeFetchPlus({
-          retries: {
+          retry: {
             factor: 0,
             minTimeout: 1,
             retries: 2,
@@ -243,7 +243,7 @@ describe('NodeFetchToolkit', () => {
         const fetchSpy = sandbox.spy(fetch, 'default');
 
         const client = new NodeFetchPlus({
-          retries: {
+          retry: {
             factor: 0,
             minTimeout: 0,
             retries: 1,
@@ -292,7 +292,7 @@ describe('NodeFetchToolkit', () => {
         const fetchSpy = sandbox.spy(fetch, 'default');
 
         const client = new NodeFetchPlus({
-          retries: {
+          retry: {
             factor: 0,
             minTimeout: 0,
             retries: 1,
@@ -345,7 +345,7 @@ describe('NodeFetchToolkit', () => {
         const fetchSpy = sandbox.spy(fetch, 'default');
 
         const client = new NodeFetchPlus({
-          retries: {
+          retry: {
             factor: 0,
             minTimeout: 0,
             retries: 1,

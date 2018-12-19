@@ -3,7 +3,7 @@ import fetch, { Request, RequestInit, Response } from 'node-fetch';
 import pRetry from 'p-retry';
 
 interface Options {
-  retries?: PartialRetryOptions | false;
+  retry?: PartialRetryOptions | false;
 }
 
 interface RetryOptions {
@@ -71,10 +71,10 @@ class NodeFetchPlus extends EventEmitter {
   constructor(opts: Options = {}) {
     super();
 
-    if (!opts.retries) {
+    if (!opts.retry) {
       this.retryOptions = NON_RETRYING_OPTIONS;
     } else {
-      this.retryOptions = Object.assign({}, DEFAULT_RETRYING_OPTIONS, opts.retries);
+      this.retryOptions = Object.assign({}, DEFAULT_RETRYING_OPTIONS, opts.retry);
     }
 
     /**

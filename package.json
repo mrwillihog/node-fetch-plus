@@ -1,6 +1,6 @@
 {
   "name": "node-fetch-plus",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "An extension of node-fetch that provides retries, timing and logging",
   "homepage": "https://github.com/mrwillihog/node-fetch-plus",
   "bugs": {
