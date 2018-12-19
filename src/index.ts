@@ -43,7 +43,7 @@ function calculateDuration(startTime: [number, number]): number {
 }
 
 interface BaseEvent {
-  attempts: number;
+  attempt: number;
   maxAttempts: number;
   method: string;
   url: string;
