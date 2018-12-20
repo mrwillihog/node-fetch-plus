@@ -1,9 +1,11 @@
 import { EventEmitter } from 'events';
 import fetch, { Request, RequestInit, Response } from 'node-fetch';
 import pRetry from 'p-retry';
+import { CacheClient, CacheManager } from './cacheManager';
 
 interface Options {
   retry?: PartialRetryOptions | false;
+  cache?: CacheClient;
 }
 
 interface RetryOptions {
@@ -26,16 +28,6 @@ const DEFAULT_RETRYING_OPTIONS: RetryOptions = {
 const NON_RETRYING_OPTIONS: RetryOptions = Object.assign({}, DEFAULT_RETRYING_OPTIONS, {
   retries: 0,
 });
-
-function extractMethod(url: string | Request, init?: RequestInit) {
-  if (url instanceof Request) {
-    return url.method.toUpperCase();
-  } else if (init && init.method) {
-    return init.method.toUpperCase();
-  } else {
-    return 'GET';
-  }
-}
 
 function calculateDuration(startTime: [number, number]): number {
   const [seconds, nanoseconds] = process.hrtime(startTime);
@@ -66,10 +58,14 @@ declare interface NodeFetchPlus {
 }
 
 class NodeFetchPlus extends EventEmitter {
-  private retryOptions: RetryOptions;
+  private readonly retryOptions: RetryOptions;
+  private readonly cacheManager?: CacheManager;
 
   constructor(opts: Options = {}) {
     super();
+    if (opts.cache) {
+      this.cacheManager = new CacheManager(opts.cache);
+    }
 
     if (!opts.retry) {
       this.retryOptions = NON_RETRYING_OPTIONS;
@@ -87,10 +83,12 @@ class NodeFetchPlus extends EventEmitter {
   }
 
   public fetch(url: string | Request, init?: RequestInit): Promise<Response> {
+    const request = new Request(url, init);
+
     const eventParams = {
       maxAttempts: this.retryOptions.retries + 1,
-      method: extractMethod(url, init),
-      url: url instanceof Request ? url.url : url,
+      method: request.method,
+      url: request.url,
     };
 
     return pRetry(async (attempt) => {
@@ -100,9 +98,17 @@ class NodeFetchPlus extends EventEmitter {
         ...eventParams,
       });
 
-      let res;
+      let response;
       try {
-        res = await fetch(url, init);
+        if (this.cacheManager) {
+          response = await this.cacheManager.get(request);
+        }
+        if (!response) {
+          response = await fetch(request, init);
+          if (this.cacheManager) {
+            await this.cacheManager.set(request, response);
+          }
+        }
       } catch (err) {
         this.emit('error', {
           attempt,
@@ -117,14 +123,15 @@ class NodeFetchPlus extends EventEmitter {
       this.emit('response', {
         attempt,
         responseTime: calculateDuration(startTime),
-        statusCode: res.status,
+        statusCode: response.status,
         ...eventParams,
       });
 
-      if (this.shouldRetry(attempt, res.status)) {
-        throw new Error(`Received ${res.status}, retrying`);
+      if (this.shouldRetry(attempt, response.status)) {
+        throw new Error(`Received ${response.status}, retrying`);
       }
-      return res;
+
+      return response;
     }, this.retryOptions);
   }
 
